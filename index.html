@@ -193,6 +193,7 @@
           <h1>PAUSED</h1>
           <button id="btn-resume" class="btn primary big">Resume</button>
           <button id="btn-restart" class="btn big">Restart</button>
+          <button id="btn-tweak" class="btn big">⚙ Scenario settings</button>
           <button id="btn-quit" class="btn big">Quit to menu</button>
         </div>
       </div>
@@ -256,6 +257,19 @@
           <button id="ed-save" class="btn primary">Save scenario</button>
           <button id="ed-cancel" class="btn">Cancel</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ============ PER-SCENARIO TWEAK POPOVER ============ -->
+    <div id="tweak-panel" class="tweak-panel hidden">
+      <div class="tweak-head">
+        <span id="tweak-title"></span>
+        <button id="tweak-close" title="Close">✕</button>
+      </div>
+      <div id="tweak-fields"></div>
+      <div class="tweak-foot">
+        <button id="tweak-reset" class="btn small">Reset defaults</button>
+        <span id="tweak-note"></span>
       </div>
     </div>
 

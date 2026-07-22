@@ -4,6 +4,7 @@ const KEYS = {
   settings: 'aimforge.settings.v1',
   runs: 'aimforge.runs.v1',
   custom: 'aimforge.custom.v1',
+  overrides: 'aimforge.overrides.v1',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -107,6 +108,26 @@ export function deleteCustomScenario(id) {
   writeJSON(KEYS.custom, loadCustomScenarios().filter((s) => s.id !== id));
 }
 
+// ---- per-scenario setting overrides ----
+// { [scenarioId]: { duration?, radius?, count?, moveSpeed?, botCount?, distance? } }
+
+export function loadOverrides() {
+  return readJSON(KEYS.overrides, {});
+}
+
+export function setOverride(id, patch) {
+  const all = loadOverrides();
+  all[id] = { ...all[id], ...patch };
+  writeJSON(KEYS.overrides, all);
+  return all[id];
+}
+
+export function clearOverride(id) {
+  const all = loadOverrides();
+  delete all[id];
+  writeJSON(KEYS.overrides, all);
+}
+
 // ---- export / import ----
 
 export function exportAll() {
@@ -118,6 +139,7 @@ export function exportAll() {
       settings: loadSettings(),
       runs: loadRuns(),
       custom: loadCustomScenarios(),
+      overrides: loadOverrides(),
     },
     null,
     2
@@ -130,4 +152,5 @@ export function importAll(json) {
   if (data.settings) writeJSON(KEYS.settings, data.settings);
   if (Array.isArray(data.runs)) writeJSON(KEYS.runs, data.runs);
   if (Array.isArray(data.custom)) writeJSON(KEYS.custom, data.custom);
+  if (data.overrides && typeof data.overrides === 'object') writeJSON(KEYS.overrides, data.overrides);
 }

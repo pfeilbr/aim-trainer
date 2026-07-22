@@ -36,7 +36,20 @@ function defById(id) {
 }
 
 function runDuration(def) {
+  const o = store.loadOverrides()[def.id];
+  if (o?.duration) return o.duration; // per-scenario beats the global override
   return settings.durationOverride > 0 ? settings.durationOverride : def.duration;
+}
+
+// A def with the user's per-scenario tweaks folded into its params.
+function effectiveDef(def) {
+  const o = store.loadOverrides()[def.id];
+  if (!o) return def;
+  const params = { ...def.params };
+  for (const k of ['radius', 'count', 'moveSpeed', 'botCount', 'distance']) {
+    if (o[k] != null) params[k] = o[k];
+  }
+  return { ...def, params };
 }
 
 function showScreen(name) {
@@ -86,9 +99,11 @@ function renderScenarioGrid() {
       </div>
       <div class="card-actions">
         <button class="btn primary play-btn">▶ Play</button>
+        <button class="btn gear-btn ${store.loadOverrides()[def.id] ? 'has-override' : ''}" title="Scenario settings">⚙</button>
         ${def.custom ? '<button class="btn edit-btn">Edit</button><button class="btn danger-outline del-btn">✕</button>' : ''}
       </div>`;
     card.querySelector('.play-btn').addEventListener('click', () => startScenario(def));
+    card.querySelector('.gear-btn').addEventListener('click', (e) => openTweaks(def, e.currentTarget));
     if (def.custom) {
       card.querySelector('.edit-btn').addEventListener('click', () => openEditor(def.id));
       card.querySelector('.del-btn').addEventListener('click', () => {
@@ -141,6 +156,90 @@ function refreshMenu() {
   renderProfileSummary();
 }
 
+// ============================== Per-scenario tweak popover ==============================
+
+const tweakPanel = $('#tweak-panel');
+let tweakDef = null;
+
+function tweakCatalog(def) {
+  const p = def.params;
+  const fields = [
+    { key: 'duration', label: 'Duration', min: 15, max: 120, step: 5, unit: 's', dflt: def.duration },
+    { key: 'radius', label: 'Target size', min: 0.15, max: 2, step: 0.05, dflt: p.radius ?? 0.8 },
+  ];
+  if (p.count != null) fields.push({ key: 'count', label: 'Targets at once', min: 1, max: 8, step: 1, dflt: p.count });
+  if (p.botCount != null) fields.push({ key: 'botCount', label: 'Bots', min: 2, max: 4, step: 1, dflt: p.botCount });
+  if (p.moveSpeed) fields.push({ key: 'moveSpeed', label: 'Move speed', min: 1, max: 20, step: 0.5, dflt: p.moveSpeed });
+  fields.push({ key: 'distance', label: 'Distance', min: 10, max: 28, step: 1, dflt: p.distance ?? 20 });
+  return fields;
+}
+
+function fmtTweakVal(v, f) {
+  const num = f.step < 1 ? (+v).toFixed(2).replace(/0$/, '') : String(Math.round(v));
+  return num + (f.unit || '');
+}
+
+function buildTweakFields() {
+  const o = store.loadOverrides()[tweakDef.id] || {};
+  const fields = tweakCatalog(tweakDef);
+  $('#tweak-fields').innerHTML = fields.map((f) => {
+    const val = o[f.key] ?? f.dflt;
+    return `
+      <label class="tweak-field"><span>${f.label}</span>
+        <span class="tf-row">
+          <input type="range" data-key="${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${val}" />
+          <span class="tf-val">${fmtTweakVal(val, f)}</span>
+        </span>
+      </label>`;
+  }).join('');
+  tweakPanel.querySelectorAll('input[type="range"]').forEach((input) => {
+    const f = fields.find((x) => x.key === input.dataset.key);
+    input.addEventListener('input', () => {
+      const v = parseFloat(input.value);
+      input.nextElementSibling.textContent = fmtTweakVal(v, f);
+      store.setOverride(tweakDef.id, { [f.key]: v });
+    });
+  });
+}
+
+function openTweaks(def, anchorEl) {
+  tweakDef = def;
+  $('#tweak-title').textContent = def.name;
+  $('#tweak-note').textContent =
+    gameState === 'paused' ? 'Applies when you restart (R)' : 'Saved · applies next run';
+  buildTweakFields();
+  tweakPanel.classList.remove('hidden');
+  if (anchorEl) {
+    tweakPanel.classList.remove('centered');
+    const r = anchorEl.getBoundingClientRect();
+    tweakPanel.style.left = Math.max(8, Math.min(window.innerWidth - 286, r.left)) + 'px';
+    tweakPanel.style.top = Math.max(8, Math.min(window.innerHeight - 340, r.bottom + 8)) + 'px';
+  } else {
+    tweakPanel.style.left = '';
+    tweakPanel.style.top = '';
+    tweakPanel.classList.add('centered');
+  }
+}
+
+function closeTweaks() {
+  if (tweakPanel.classList.contains('hidden')) return;
+  tweakPanel.classList.add('hidden');
+  tweakDef = null;
+  if (gameState === 'menu') refreshMenu(); // reflect new durations / gear highlights
+}
+
+$('#tweak-close').addEventListener('click', closeTweaks);
+$('#tweak-reset').addEventListener('click', () => {
+  store.clearOverride(tweakDef.id);
+  buildTweakFields();
+});
+$('#btn-tweak').addEventListener('click', () => openTweaks(currentDef, null));
+document.addEventListener('mousedown', (e) => {
+  if (tweakPanel.classList.contains('hidden')) return;
+  if (tweakPanel.contains(e.target) || e.target.closest('.gear-btn') || e.target.closest('#btn-tweak')) return;
+  closeTweaks();
+});
+
 // nav + category tabs
 $$('.nav-btn').forEach((btn) =>
   btn.addEventListener('click', () => {
@@ -164,7 +263,7 @@ $$('#category-tabs .tab').forEach((tab) =>
 function startScenario(def) {
   if (scenario) scenario.end(); // never leak targets from a still-live run
   currentDef = def;
-  scenario = createScenario(def, engine, sfx, settings);
+  scenario = createScenario(effectiveDef(def), engine, sfx, settings);
   timeLeft = runDuration(def);
   engine.applySettings(settings);
   engine.resetView();
@@ -247,6 +346,7 @@ function finishRun() {
     kills: result.kills,
     duration: runDuration(currentDef),
     date: new Date().toISOString(),
+    modified: !!store.loadOverrides()[currentDef.id], // played with tweaked settings
     meta,
   };
   store.addRun(run);
@@ -258,7 +358,8 @@ function finishRun() {
 }
 
 function renderResults(run, stats, prevPB) {
-  $('#res-scenario').textContent = run.scenarioName;
+  $('#res-scenario').textContent = run.scenarioName + (run.modified ? ' ⚙' : '');
+  $('#res-scenario').title = run.modified ? 'Played with modified scenario settings' : '';
   $('#res-score').textContent = run.score.toLocaleString();
 
   // delta vs previous PB
@@ -367,6 +468,7 @@ $('#game-canvas').addEventListener('click', () => {
 // keyboard
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (!tweakPanel.classList.contains('hidden')) { closeTweaks(); return; }
     if (gameState === 'results') { backToMenuFromResults(); }
     // pointer lock exit already triggers pause during play
   }
@@ -434,7 +536,7 @@ function renderStats() {
   $('#recent-runs').innerHTML = recent.length
     ? recent.map((r) => `
         <div class="run-row">
-          <span class="rr-name">${r.scenarioName}</span>
+          <span class="rr-name">${r.scenarioName}${r.modified ? ' ⚙' : ''}</span>
           <span class="rr-score">${r.score.toLocaleString()}</span>
           <span class="rr-dim">${Math.round((r.accuracy || 0) * 100)}%</span>
           <span class="rr-dim">${fmtDate(r.date)}</span>

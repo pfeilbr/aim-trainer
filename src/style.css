@@ -242,6 +242,27 @@ input[type="color"] { width: 48px; height: 32px; border: 1px solid var(--border)
 .modal-card h2 { margin-bottom: 18px; }
 .field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 
+/* ============ PER-SCENARIO TWEAK POPOVER ============ */
+.tweak-panel {
+  position: fixed; z-index: 60; width: 270px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
+}
+.tweak-panel.centered { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
+.tweak-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.tweak-head span { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text); }
+#tweak-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.95rem; padding: 2px 6px; }
+#tweak-close:hover { color: var(--text); }
+.tweak-field { display: block; margin-bottom: 9px; font-size: 0.75rem; color: var(--text-dim); }
+.tweak-field > span:first-child { display: block; margin-bottom: 3px; }
+.tf-row { display: flex; gap: 10px; align-items: center; }
+.tf-row input[type="range"] { flex: 1; }
+.tf-val { width: 46px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+.tweak-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
+#tweak-note { font-size: 0.66rem; color: var(--text-dim); text-align: right; line-height: 1.3; }
+.gear-btn { flex: 0 0 auto !important; padding: 9px 11px; }
+.gear-btn.has-override { color: var(--accent); border-color: var(--accent); }
+
 /* ============ CALIBRATION WIZARD ============ */
 .cal-card { width: min(520px, 94vw); }
 .cal-intro { font-size: 0.88rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px; }
