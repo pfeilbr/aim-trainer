@@ -722,6 +722,16 @@ const MODES = {
 
 export const SCENARIOS = [
   {
+    // First-time intro: hidden from the scenario grid, ends after 10 kills,
+    // 1s countdown, big forgiving targets, no miss penalty.
+    id: 'welcome', name: 'Welcome Range', cat: 'Clicking', duration: 60,
+    hidden: true, killTarget: 10, countdown: 1,
+    desc: 'Guided first-time intro.',
+    mode: 'click',
+    params: { count: 3, radius: 1.1, width: 12, height: 4.5, yCenter: 2.9, distance: 18, missPenalty: 0 },
+    benchmarks: null,
+  },
+  {
     id: 'gridshot', name: 'Gridshot', cat: 'Clicking', duration: 60,
     desc: 'Three floating orbs at all times. Kill one, another spawns. The classic speed-clicking warmup.',
     mode: 'click',

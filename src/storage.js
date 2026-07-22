@@ -8,6 +8,7 @@ const KEYS = {
 };
 
 export const DEFAULT_SETTINGS = {
+  onboarded: false,   // true once the first-run intro has been played or dismissed
   calibrated: false,  // true once the first-run mouse wizard has been completed/skipped
   sens: 1.0,          // CS/Apex scale (0.022 deg per count at sens 1)
   dpi: 800,

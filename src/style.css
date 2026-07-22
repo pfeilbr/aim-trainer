@@ -242,6 +242,34 @@ input[type="color"] { width: 48px; height: 32px; border: 1px solid var(--border)
 .modal-card h2 { margin-bottom: 18px; }
 .field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 
+/* ============ FIRST-RUN WELCOME ============ */
+.welcome-card {
+  width: min(440px, 92vw); text-align: center;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+  padding: 40px 36px 32px; display: flex; flex-direction: column; align-items: center; gap: 14px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+}
+.welcome-card h1 { font-size: 1.9rem; letter-spacing: 0.16em; }
+.welcome-card h1 b { color: var(--accent); }
+.welcome-card h2 { font-size: 1.5rem; letter-spacing: 0.06em; }
+.welcome-card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; }
+.welcome-cta { width: 100%; font-size: 1.15rem; padding: 16px; margin-top: 6px; }
+.btn-link { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.8rem; text-decoration: underline; }
+.btn-link:hover { color: var(--text); }
+.wd-emoji { font-size: 3rem; line-height: 1; }
+.wd-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 6px; }
+
+#guide-hint {
+  position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
+  font-size: 1.05rem; color: #fff; background: rgba(10, 13, 18, 0.75);
+  border: 1px solid var(--border); border-radius: 999px; padding: 10px 22px;
+  white-space: nowrap; animation: hint-pulse 1.6s ease-in-out infinite;
+}
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.04); }
+}
+
 /* ============ PER-SCENARIO TWEAK POPOVER ============ */
 .tweak-panel {
   position: fixed; z-index: 60; width: 270px;

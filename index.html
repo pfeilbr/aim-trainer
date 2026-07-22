@@ -188,6 +188,7 @@
         </div>
         <div class="hud-scenario" id="hud-scenario-name"></div>
         <div class="hud-bottom">ESC pause &nbsp;•&nbsp; R restart</div>
+        <div id="guide-hint" class="hidden"></div>
         <div id="countdown" class="hidden"></div>
         <div id="pause-overlay" class="overlay hidden">
           <h1>PAUSED</h1>
@@ -256,6 +257,37 @@
         <div class="btn-row center">
           <button id="ed-save" class="btn primary">Save scenario</button>
           <button id="ed-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ FIRST-RUN WELCOME ============ -->
+    <div id="welcome-modal" class="modal hidden">
+      <div class="welcome-card">
+        <svg viewBox="0 0 100 100" width="56" height="56">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="8"/>
+          <circle cx="50" cy="50" r="12" fill="var(--accent)"/>
+          <line x1="50" y1="2" x2="50" y2="24" stroke="var(--accent)" stroke-width="8"/>
+          <line x1="50" y1="76" x2="50" y2="98" stroke="var(--accent)" stroke-width="8"/>
+          <line x1="2" y1="50" x2="24" y2="50" stroke="var(--accent)" stroke-width="8"/>
+          <line x1="76" y1="50" x2="98" y2="50" stroke="var(--accent)" stroke-width="8"/>
+        </svg>
+        <h1>AIM<b>FORGE</b></h1>
+        <p>Train your aim like the pros — free, in your browser.<br/>No account. No install. No setup.</p>
+        <button id="welcome-start" class="btn primary big welcome-cta">▶ &nbsp;Start shooting</button>
+        <button id="welcome-skip" class="btn-link">I'll explore on my own</button>
+      </div>
+    </div>
+
+    <div id="welcome-done" class="modal hidden">
+      <div class="welcome-card">
+        <div class="wd-emoji">🎯</div>
+        <h2>Nice shooting!</h2>
+        <p id="wd-stats"></p>
+        <div class="wd-actions">
+          <button id="wd-warmup" class="btn primary big">⚡ Start the Daily Warmup</button>
+          <button id="wd-browse" class="btn big">Browse all scenarios</button>
+          <button id="wd-calibrate" class="btn big">🖱️ Fine-tune your mouse (30 s)</button>
         </div>
       </div>
     </div>

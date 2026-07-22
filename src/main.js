@@ -79,7 +79,7 @@ function renderScenarioGrid() {
   const grid = $('#scenario-grid');
   grid.innerHTML = '';
   const defs = allScenarioDefs().filter(
-    (d) => activeCategory === 'All' || d.cat === activeCategory
+    (d) => !d.hidden && (activeCategory === 'All' || d.cat === activeCategory)
   );
 
   for (const def of defs) {
@@ -275,14 +275,52 @@ function startScenario(def) {
   applyCrosshair($('#crosshair'), settings.crosshair);
   $('#pause-overlay').classList.add('hidden');
 
+  $('#welcome-done').classList.add('hidden');
   showScreen('game');
   gameState = 'countdown';
-  countdownT = 3;
+  countdownT = def.countdown ?? 3;
   $('#countdown').classList.remove('hidden');
-  $('#countdown').textContent = '3';
+  $('#countdown').textContent = String(Math.ceil(countdownT));
+
+  // guided hints for the first-time intro
+  guide = def.id === 'welcome' ? { moved: 0, stage: 0 } : null;
+  setHint(guide ? 'Move your mouse to look around' : null);
+
   scenario.start();
   updateHUD();
   engine.requestLock();
+}
+
+// ---- first-run guidance ----
+let guide = null;
+
+function setHint(text) {
+  const el = $('#guide-hint');
+  el.classList.toggle('hidden', !text);
+  if (text) el.textContent = text;
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (guide && (gameState === 'playing' || gameState === 'countdown')) {
+    guide.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+  }
+});
+
+function updateGuide() {
+  if (!guide || !scenario) return;
+  if (guide.stage === 0 && guide.moved > 300) {
+    guide.stage = 1;
+    setHint('Now click the glowing orbs!');
+  } else if (guide.stage === 1 && scenario.kills >= 1) {
+    guide.stage = 2;
+    setHint('Great! Keep going — hit 10');
+  } else if (guide.stage === 2 && scenario.kills >= 5) {
+    guide.stage = 3;
+    setHint("You're a natural — 5 more!");
+  } else if (guide.stage === 3 && scenario.kills >= 8) {
+    guide.stage = 4;
+    setHint(null);
+  }
 }
 
 function beginPlay() {
@@ -321,6 +359,8 @@ function quitToMenu() {
 function endScenarioCleanup() {
   if (scenario) scenario.end();
   scenario = null;
+  guide = null;
+  setHint(null);
   engine.inputEnabled = false;
   engine.releaseLock();
 }
@@ -329,7 +369,21 @@ function finishRun() {
   gameState = 'results';
   engine.inputEnabled = false;
   engine.releaseLock();
+  setHint(null);
   sfx.end();
+
+  // First-time intro: celebrate instead of the normal results screen,
+  // and don't pollute run history/stats with the tutorial.
+  if (currentDef.hidden) {
+    const r = scenario.baseResult();
+    $('#wd-stats').textContent =
+      `You hit ${r.kills} targets in ${scenario.elapsed.toFixed(1)} seconds ` +
+      `with ${Math.round(r.accuracy * 100)}% accuracy. You're all set — pick what's next:`;
+    scenario.end();
+    scenario = null;
+    $('#welcome-done').classList.remove('hidden');
+    return;
+  }
 
   const result = scenario.baseResult();
   const stats = scenario.resultStats();
@@ -435,8 +489,9 @@ function tick(now) {
     scenario.elapsed += dt;
     timeLeft -= dt;
     scenario.update(dt);
+    updateGuide();
     updateHUD();
-    if (timeLeft <= 0) {
+    if (timeLeft <= 0 || (currentDef.killTarget && scenario.kills >= currentDef.killTarget)) {
       finishRun();
     }
   }
@@ -449,7 +504,9 @@ function tick(now) {
 
 function updateHUD() {
   $('#hud-score').textContent = Math.max(0, Math.round(scenario.score)).toLocaleString();
-  $('#hud-timer').textContent = Math.max(0, timeLeft).toFixed(1);
+  $('#hud-timer').textContent = currentDef.killTarget
+    ? `${scenario.kills}/${currentDef.killTarget}`
+    : Math.max(0, timeLeft).toFixed(1);
   $('#hud-acc').textContent = scenario.hudAccValue();
 }
 
@@ -525,7 +582,7 @@ function renderStats() {
 
   // scenario select
   const sel = $('#stats-scenario-select');
-  const defs = allScenarioDefs();
+  const defs = allScenarioDefs().filter((d) => !d.hidden);
   const prev = sel.value;
   sel.innerHTML = defs.map((d) => `<option value="${d.id}">${d.name}</option>`).join('');
   if (defs.some((d) => d.id === prev)) sel.value = prev;
@@ -755,6 +812,36 @@ $('#ed-cancel').addEventListener('click', () => $('#editor-modal').classList.add
 
 // ============================== Boot ==============================
 
+// ============================== First-run welcome ==============================
+
+function dismissWelcome() {
+  $('#welcome-modal').classList.add('hidden');
+  settings.onboarded = true;
+  store.saveSettings(settings);
+}
+
+$('#welcome-start').addEventListener('click', () => {
+  dismissWelcome();
+  startScenario(defById('welcome'));
+});
+$('#welcome-skip').addEventListener('click', dismissWelcome);
+
+$('#wd-warmup').addEventListener('click', () => {
+  $('#welcome-done').classList.add('hidden');
+  const pl = PLAYLISTS[0];
+  playlist = { def: pl, index: 0 };
+  startScenario(defById(pl.ids[0]));
+});
+$('#wd-browse').addEventListener('click', () => {
+  $('#welcome-done').classList.add('hidden');
+  backToMenuFromResults();
+});
+$('#wd-calibrate').addEventListener('click', () => {
+  $('#welcome-done').classList.add('hidden');
+  backToMenuFromResults();
+  calibration.open('auto');
+});
+
 // ============================== Mouse calibration ==============================
 
 const calibration = initCalibration({
@@ -775,8 +862,16 @@ bindSettings();
 refreshMenu();
 showScreen('menu');
 
-// First visit: open the mouse wizard so new users start with sane sensitivity.
-if (!settings.calibrated) calibration.open();
+// First visit: one-click guided intro. (Users from before the intro existed
+// are considered onboarded — never nag returning players.)
+if (!settings.onboarded) {
+  if (settings.calibrated) {
+    settings.onboarded = true;
+    store.saveSettings(settings);
+  } else {
+    $('#welcome-modal').classList.remove('hidden');
+  }
+}
 
 // Main loop: rAF when available, with an interval fallback so the game
 // keeps stepping if rAF is throttled (background/embedded tabs).
