@@ -19,6 +19,7 @@ A free, browser-based FPS aim trainer inspired by [KovaaK's](https://store.steam
 - **Mouse calibration wizard** — measure your natural 180° flick (3 swipes, no numbers needed) and sensitivity is set for you, or copy your sens from a game. Detects polling rate, trackpad input, and missing raw input (OS pointer acceleration) while calibrating. In Settings and offered after the intro
 - **Real sensitivity model** — CS/Apex-scale sensitivity (0.022°/count), cm/360 display, and importers for Valorant, Overwatch 2, Fortnite, and Quake sens
 - **Crosshair editor** — style, color, size, gap, thickness, outline, with live preview
+- **Data-driven themes** — five complete themes (Forge, Neon Vice, Arctic, Crimson Ops, Retro Terminal), each a single data object driving the UI palette, the 3D arena (walls, fog, grids, lighting, strip lights), target color, corner radius, typography (Retro goes monospace), and its own synthesized sound profile. Live-preview swatch picker in Settings; applies instantly
 - **Customization** — FOV (horizontal), target color, run-duration override, synthesized hit sounds (WebAudio, no assets)
 - **Data portability** — export/import all data as JSON
 

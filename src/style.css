@@ -1,4 +1,5 @@
 :root {
+  --font: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --bg: #0c0f14;
   --bg2: #12161d;
   --panel: #171c25;
@@ -19,9 +20,15 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
   overflow: hidden;
   user-select: none;
+}
+
+/* smooth theme switches */
+body, .sidebar, .scenario-card, .settings-group, .btn, .modal-card,
+.playlist-card, .stat-card, .stats-chart-box, .recent-runs-box, .run-row {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 #app, .screen { position: fixed; inset: 0; }
@@ -147,6 +154,24 @@ input[type="color"] { width: 48px; height: 32px; border: 1px solid var(--border)
   display: flex; align-items: center; justify-content: center; position: relative;
   background-image: radial-gradient(circle at 30% 40%, #4a5468 0%, #3a4252 60%);
 }
+
+/* ============ THEME PICKER ============ */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+.theme-card {
+  border: 2px solid var(--border); border-radius: var(--radius); padding: 7px;
+  background: var(--bg2); cursor: pointer; display: flex; flex-direction: column; gap: 7px;
+}
+.theme-card:hover { border-color: var(--text-dim); }
+.theme-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tc-preview { position: relative; height: 54px; border-radius: 5px; overflow: hidden; display: block; }
+.tc-target {
+  position: absolute; width: 15px; height: 15px; border-radius: 50%;
+  left: 50%; top: 42%; transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+}
+.tc-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; }
+.tc-name { font-size: 0.72rem; color: var(--text); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-desc { font-size: 0.8rem; color: var(--text-dim); margin-top: 12px; min-height: 1.2em; }
 
 /* ============ STATS ============ */
 .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }

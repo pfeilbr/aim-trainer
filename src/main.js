@@ -5,6 +5,7 @@ import { Sfx } from './audio.js';
 import { drawLineChart } from './charts.js';
 import { applyCrosshair } from './crosshair.js';
 import { initCalibration } from './calibrate.js';
+import { THEMES, themeById, applyUITheme } from './themes.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -15,6 +16,46 @@ let settings = store.loadSettings();
 const sfx = new Sfx(settings);
 const engine = new Engine($('#game-canvas'));
 engine.applySettings(settings);
+
+// ============================== Theming ==============================
+
+function applyTheme(id, { persist = true } = {}) {
+  const t = themeById(id);
+  applyUITheme(t);          // CSS variables: colors, radius, font
+  engine.applyTheme(t);     // 3D arena: walls, grid, fog, lights, strips
+  sfx.setProfile(t.sfx);    // sound flavor
+  settings.theme = t.id;
+  settings.targetColor = t.targetColor;
+  const colorInput = $('#set-target-color');
+  if (colorInput) colorInput.value = t.targetColor;
+  if (persist) store.saveSettings(settings);
+  renderThemeGrid();
+}
+
+function renderThemeGrid() {
+  const grid = $('#theme-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (const t of THEMES) {
+    const a = t.arena;
+    const card = document.createElement('button');
+    card.className = 'theme-card' + (settings.theme === t.id ? ' active' : '');
+    card.innerHTML = `
+      <span class="tc-preview" style="background: linear-gradient(180deg, ${a.sky} 0%, ${a.wall} 55%, ${a.floor} 100%)">
+        <span class="tc-target" style="background:${t.targetColor}"></span>
+        <span class="tc-accent" style="background:${t.ui.accent}"></span>
+      </span>
+      <span class="tc-name">${t.emoji} ${t.name}</span>`;
+    card.addEventListener('click', () => {
+      applyTheme(t.id);
+      sfx.kill(); // audible preview of the theme's sound profile
+    });
+    grid.appendChild(card);
+  }
+  $('#theme-desc').textContent = themeById(settings.theme).desc;
+}
+
+applyTheme(settings.theme || 'forge', { persist: false });
 
 let currentDef = null;      // scenario def being played
 let scenario = null;        // live scenario instance

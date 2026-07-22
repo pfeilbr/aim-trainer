@@ -25,6 +25,7 @@ export class Engine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x11151c);
     this.scene.fog = new THREE.Fog(0x11151c, 45, 90);
+    this.room = null;
 
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.05, 300);
     this.camera.position.set(0, 1.6, 0);
@@ -47,18 +48,43 @@ export class Engine {
 
     this.effects = []; // transient kill-pop animations
 
-    this.buildRoom();
+    this.hemi = new THREE.HemisphereLight(0xcfdcee, 0x39404c, 1.6);
+    this.scene.add(this.hemi);
+    this.dir = new THREE.DirectionalLight(0xffffff, 1.6);
+    this.dir.position.set(6, 14, 8);
+    this.scene.add(this.dir);
+
     this.bindEvents();
     this.resize();
   }
 
-  buildRoom() {
+  // Rebuild the arena from a theme's `arena` config (see themes.js).
+  applyTheme(theme) {
+    const a = theme.arena;
+    if (this.room) {
+      this.scene.remove(this.room);
+      this.room.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      });
+    }
+    this.room = this.buildRoom(a);
+    this.scene.add(this.room);
+    this.scene.background = new THREE.Color(a.sky);
+    this.scene.fog = new THREE.Fog(a.sky, a.fogNear ?? 45, a.fogFar ?? 90);
+    this.hemi.color.set(a.hemiSky);
+    this.hemi.groundColor.set(a.hemiGround);
+    this.hemi.intensity = a.hemiIntensity ?? 1.6;
+    this.dir.intensity = a.dirIntensity ?? 1.6;
+  }
+
+  buildRoom(a) {
     const room = new THREE.Group();
 
     const W = 44, H = 12, D = 70; // gameplay space: player near z=+10, targets around z=-20..-30
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x252d3a, roughness: 0.95 });
-    const backMat = new THREE.MeshStandardMaterial({ color: 0x1c222d, roughness: 0.95 });
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a202a, roughness: 1 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(a.wall), roughness: 0.95 });
+    const backMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(a.back), roughness: 0.95 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(a.floor), roughness: 1 });
 
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -81,19 +107,19 @@ export class Engine {
     mkWall(D, H, W / 2, H / 2, 0, -Math.PI / 2);       // right
 
     // floor grid
-    const grid = new THREE.GridHelper(Math.max(W, D), 34, 0x2a3342, 0x222a37);
+    const grid = new THREE.GridHelper(Math.max(W, D), 34, new THREE.Color(a.gridCenter), new THREE.Color(a.grid));
     grid.position.y = 0.01;
     room.add(grid);
 
     // subtle grid on the front wall for spatial reference
-    const wallGrid = new THREE.GridHelper(W, 22, 0x2a3342, 0x232b38);
+    const wallGrid = new THREE.GridHelper(W, 22, new THREE.Color(a.gridCenter), new THREE.Color(a.grid));
     wallGrid.rotation.x = Math.PI / 2;
     wallGrid.position.set(0, H / 2, -D / 2 + 10.05);
     wallGrid.scale.y = H / W;
     room.add(wallGrid);
 
     // accent strip lights along wall/floor edges
-    const stripMat = new THREE.MeshBasicMaterial({ color: 0xff7a18 });
+    const stripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(a.strip) });
     const stripL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, D), stripMat);
     stripL.position.set(-W / 2 + 0.1, 0.08, 0);
     room.add(stripL);
@@ -101,12 +127,7 @@ export class Engine {
     stripR.position.x = W / 2 - 0.1;
     room.add(stripR);
 
-    this.scene.add(room);
-
-    this.scene.add(new THREE.HemisphereLight(0xcfdcee, 0x39404c, 1.6));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.6);
-    dir.position.set(6, 14, 8);
-    this.scene.add(dir);
+    return room;
   }
 
   bindEvents() {
