@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AimForge — Aim Trainer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='none' stroke='%23ff7a18' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%23ff7a18'/></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ MENU ============ -->
+    <div id="screen-menu" class="screen">
+      <aside class="sidebar">
+        <div class="logo">
+          <svg viewBox="0 0 100 100" width="34" height="34">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="8"/>
+            <circle cx="50" cy="50" r="12" fill="var(--accent)"/>
+            <line x1="50" y1="2" x2="50" y2="24" stroke="var(--accent)" stroke-width="8"/>
+            <line x1="50" y1="76" x2="50" y2="98" stroke="var(--accent)" stroke-width="8"/>
+            <line x1="2" y1="50" x2="24" y2="50" stroke="var(--accent)" stroke-width="8"/>
+            <line x1="76" y1="50" x2="98" y2="50" stroke="var(--accent)" stroke-width="8"/>
+          </svg>
+          <span>AIM<b>FORGE</b></span>
+        </div>
+        <nav>
+          <button class="nav-btn active" data-panel="train">▸ Train</button>
+          <button class="nav-btn" data-panel="stats">▸ Stats</button>
+          <button class="nav-btn" data-panel="settings">▸ Settings</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div id="profile-summary"></div>
+          <div class="hint">All data stays in your browser.<br/>No account needed.</div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <!-- TRAIN -->
+        <section id="panel-train" class="panel active">
+          <header class="panel-header">
+            <h1>Training</h1>
+            <div class="filter-tabs" id="category-tabs">
+              <button class="tab active" data-cat="All">All</button>
+              <button class="tab" data-cat="Clicking">Clicking</button>
+              <button class="tab" data-cat="Tracking">Tracking</button>
+              <button class="tab" data-cat="Flicking">Flicking</button>
+              <button class="tab" data-cat="Reaction">Reaction</button>
+              <button class="tab" data-cat="Custom">Custom</button>
+            </div>
+          </header>
+          <div id="playlist-row"></div>
+          <div id="scenario-grid" class="card-grid"></div>
+        </section>
+
+        <!-- STATS -->
+        <section id="panel-stats" class="panel">
+          <header class="panel-header"><h1>Statistics</h1></header>
+          <div id="stats-summary" class="stat-cards"></div>
+          <div class="stats-detail">
+            <div class="stats-chart-box">
+              <div class="row-between">
+                <h2>Score history</h2>
+                <select id="stats-scenario-select"></select>
+              </div>
+              <canvas id="stats-chart" height="220"></canvas>
+              <div id="stats-scenario-info" class="scenario-info-row"></div>
+            </div>
+            <div class="recent-runs-box">
+              <h2>Recent runs</h2>
+              <div id="recent-runs" class="runs-table"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section id="panel-settings" class="panel">
+          <header class="panel-header"><h1>Settings</h1></header>
+          <div class="settings-grid">
+
+            <div class="settings-group">
+              <h2>Mouse sensitivity</h2>
+              <label class="field">
+                <span>Sensitivity <small>(CS/Apex scale, 0.022°/count)</small></span>
+                <span class="field-inline">
+                  <input type="range" id="set-sens-slider" min="0.1" max="5" step="0.05" />
+                  <input type="number" id="set-sens" min="0.01" max="20" step="0.01" />
+                </span>
+              </label>
+              <label class="field">
+                <span>Mouse DPI <small>(for cm/360 display)</small></span>
+                <input type="number" id="set-dpi" min="100" max="26000" step="50" />
+              </label>
+              <div class="derived" id="cm360-display">—</div>
+              <div class="subgroup">
+                <h3>Import from game</h3>
+                <span class="field-inline">
+                  <select id="conv-game">
+                    <option value="0.022">CS2 / CS:GO</option>
+                    <option value="0.022">Apex Legends</option>
+                    <option value="0.07">Valorant</option>
+                    <option value="0.0066">Overwatch 2</option>
+                    <option value="0.005558">Fortnite</option>
+                    <option value="0.02291">Quake / Diabotical</option>
+                  </select>
+                  <input type="number" id="conv-value" placeholder="in-game sens" step="0.001" min="0" />
+                  <button id="conv-apply" class="btn small">Apply</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <h2>Display</h2>
+              <label class="field">
+                <span>Field of view <small>(horizontal, 16:9 style)</small></span>
+                <span class="field-inline">
+                  <input type="range" id="set-fov-slider" min="60" max="140" step="1" />
+                  <input type="number" id="set-fov" min="60" max="140" step="1" />
+                </span>
+              </label>
+              <label class="field">
+                <span>Run duration override</span>
+                <select id="set-duration">
+                  <option value="0">Scenario default</option>
+                  <option value="30">30 seconds</option>
+                  <option value="60">60 seconds</option>
+                  <option value="120">120 seconds</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Target color</span>
+                <input type="color" id="set-target-color" />
+              </label>
+            </div>
+
+            <div class="settings-group">
+              <h2>Crosshair</h2>
+              <label class="field"><span>Style</span>
+                <select id="ch-style">
+                  <option value="cross">Cross</option>
+                  <option value="crossdot">Cross + dot</option>
+                  <option value="dot">Dot</option>
+                  <option value="circle">Circle</option>
+                </select>
+              </label>
+              <label class="field"><span>Color</span><input type="color" id="ch-color" /></label>
+              <label class="field"><span>Size</span><input type="range" id="ch-size" min="2" max="30" step="1" /></label>
+              <label class="field"><span>Thickness</span><input type="range" id="ch-thickness" min="1" max="8" step="1" /></label>
+              <label class="field"><span>Gap</span><input type="range" id="ch-gap" min="0" max="16" step="1" /></label>
+              <label class="field checkbox"><input type="checkbox" id="ch-outline" /><span>Outline</span></label>
+              <div class="crosshair-preview" id="crosshair-preview"></div>
+            </div>
+
+            <div class="settings-group">
+              <h2>Audio</h2>
+              <label class="field"><span>Volume</span><input type="range" id="set-volume" min="0" max="1" step="0.05" /></label>
+              <label class="field checkbox"><input type="checkbox" id="set-hitsound" /><span>Hit sounds</span></label>
+            </div>
+
+            <div class="settings-group">
+              <h2>Data</h2>
+              <div class="btn-row">
+                <button id="btn-export" class="btn">Export data</button>
+                <button id="btn-import" class="btn">Import data</button>
+                <input type="file" id="import-file" accept=".json" hidden />
+              </div>
+              <div class="btn-row">
+                <button id="btn-reset-settings" class="btn danger-outline">Reset settings</button>
+                <button id="btn-reset-progress" class="btn danger-outline">Wipe progress</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ============ GAME ============ -->
+    <div id="screen-game" class="screen hidden">
+      <canvas id="game-canvas"></canvas>
+      <div id="hud">
+        <div id="crosshair"></div>
+        <div class="hud-top">
+          <div class="hud-cell"><label>SCORE</label><span id="hud-score">0</span></div>
+          <div class="hud-cell hud-timer"><span id="hud-timer">60.0</span></div>
+          <div class="hud-cell"><label id="hud-acc-label">ACC</label><span id="hud-acc">100%</span></div>
+        </div>
+        <div class="hud-scenario" id="hud-scenario-name"></div>
+        <div class="hud-bottom">ESC pause &nbsp;•&nbsp; R restart</div>
+        <div id="countdown" class="hidden"></div>
+        <div id="pause-overlay" class="overlay hidden">
+          <h1>PAUSED</h1>
+          <button id="btn-resume" class="btn primary big">Resume</button>
+          <button id="btn-restart" class="btn big">Restart</button>
+          <button id="btn-quit" class="btn big">Quit to menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RESULTS ============ -->
+    <div id="screen-results" class="screen hidden">
+      <div class="results-card">
+        <div class="results-head">
+          <h2 id="res-scenario"></h2>
+          <div id="res-playlist-progress"></div>
+        </div>
+        <div class="results-score-row">
+          <div class="results-score">
+            <label>SCORE</label>
+            <span id="res-score">0</span>
+            <span id="res-delta"></span>
+          </div>
+          <div class="results-rank" id="res-rank"></div>
+        </div>
+        <div id="res-rank-progress"></div>
+        <div class="results-stats" id="res-stats"></div>
+        <div class="results-chart-box">
+          <h3>Your last runs</h3>
+          <canvas id="res-chart" height="140"></canvas>
+        </div>
+        <div class="btn-row center">
+          <button id="res-retry" class="btn primary big">Play again (R)</button>
+          <button id="res-next" class="btn primary big hidden">Next in playlist ▸</button>
+          <button id="res-menu" class="btn big">Menu (Esc)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CUSTOM SCENARIO EDITOR ============ -->
+    <div id="editor-modal" class="modal hidden">
+      <div class="modal-card">
+        <h2 id="editor-title">Scenario editor</h2>
+        <label class="field"><span>Name</span><input type="text" id="ed-name" maxlength="32" placeholder="My scenario" /></label>
+        <label class="field"><span>Mode</span>
+          <select id="ed-mode">
+            <option value="click">Clicking — static targets</option>
+            <option value="moving">Clicking — moving targets</option>
+            <option value="flick">Flicking — one target, speed scored</option>
+            <option value="track">Tracking — strafing bot</option>
+          </select>
+        </label>
+        <div class="field-2col">
+          <label class="field"><span>Targets at once</span><input type="number" id="ed-count" min="1" max="10" value="3" /></label>
+          <label class="field"><span>Target size</span><input type="number" id="ed-size" min="0.05" max="3" step="0.05" value="0.9" /></label>
+          <label class="field"><span>Duration (s)</span><input type="number" id="ed-duration" min="10" max="300" value="60" /></label>
+          <label class="field"><span>Distance</span><input type="number" id="ed-distance" min="5" max="60" value="20" /></label>
+          <label class="field"><span>Area width</span><input type="number" id="ed-width" min="2" max="40" value="14" /></label>
+          <label class="field"><span>Area height</span><input type="number" id="ed-height" min="1" max="20" value="6" /></label>
+          <label class="field"><span>Move speed</span><input type="number" id="ed-speed" min="0" max="30" step="0.5" value="6" /></label>
+          <label class="field"><span>Hits to kill</span><input type="number" id="ed-hits" min="1" max="10" value="1" /></label>
+        </div>
+        <div class="btn-row center">
+          <button id="ed-save" class="btn primary">Save scenario</button>
+          <button id="ed-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
