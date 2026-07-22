@@ -6,12 +6,12 @@ A free, browser-based FPS aim trainer inspired by [KovaaK's](https://store.steam
 
 ## Features
 
-- **10 built-in scenarios** across four categories:
-  - *Clicking* — Gridshot, Tile Frenzy, Sixshot, Microshot, Spidershot, Motion Strike
-  - *Flicking* — Flickshot (scored on flick speed)
-  - *Tracking* — Strafe Track, Air Track (hold fire, stay on target)
+- **15 built-in scenarios** across four categories:
+  - *Clicking* — Gridshot, Tile Frenzy, Sixshot, Microshot, Spidershot, Motion Strike (juking movers), Popcorn (gravity-arc targets), Bounceshot (floor-bouncing targets)
+  - *Flicking* — Flickshot (scored on flick speed), Dodgeshot (target dashes sideways in bursts)
+  - *Tracking* — Strafe Track, Air Track, Ascended Track (strafing + jumping pill bot), Target Switch (three juking bots, track the glowing one)
   - *Reaction* — Reflex Shot (scored on reaction time)
-- **Daily Warmup playlist** — a 6-scenario routine covering every skill
+- **Two playlists** — Daily Warmup (all skills) and Movement Mastery (moving targets only)
 - **Benchmarks & ranks** — Iron → Grandmaster thresholds per scenario, with progress bars toward the next rank
 - **Progress tracking** — score history charts, personal bests, per-scenario averages, recent runs, lifetime stats
 - **Custom scenario editor** — build your own scenarios (mode, target count/size, spawn area, speed, hits-to-kill, duration)

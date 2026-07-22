@@ -161,6 +161,7 @@ $$('#category-tabs .tab').forEach((tab) =>
 // ============================== Game flow ==============================
 
 function startScenario(def) {
+  if (scenario) scenario.end(); // never leak targets from a still-live run
   currentDef = def;
   scenario = createScenario(def, engine, sfx, settings);
   timeLeft = runDuration(def);

@@ -54,7 +54,9 @@ class Target {
 
     const geo = shape === 'tile'
       ? new THREE.BoxGeometry(radius * 2, radius * 2, 0.12)
-      : new THREE.SphereGeometry(radius, 26, 18);
+      : shape === 'capsule'
+        ? new THREE.CapsuleGeometry(radius, radius * 2.2, 6, 14)
+        : new THREE.SphereGeometry(radius, 26, 18);
     const c = new THREE.Color(color);
     const mat = new THREE.MeshStandardMaterial({
       color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.35,
@@ -68,6 +70,14 @@ class Target {
 
   setGlow(on) {
     this.mesh.material.emissiveIntensity = on ? 0.9 : 0.35;
+  }
+
+  // Dim inactive bots (used by target-switching scenarios).
+  setDim(dim) {
+    const m = this.mesh.material;
+    m.transparent = true;
+    m.opacity = dim ? 0.25 : 1;
+    m.emissiveIntensity = dim ? 0.05 : 0.9;
   }
 
   damageFlash() {
@@ -230,13 +240,26 @@ class ClickScenario extends ScenarioBase {
   update(dt) {
     if (!this.p.moveSpeed) return;
     const r = this.region;
+    const juke = this.p.movement === 'juke';
     for (const t of this.targets) {
+      if (juke) {
+        // Organic movement: accelerate toward a new random heading every few
+        // hundred ms instead of billiard-ball straight lines.
+        t.jukeTimer = (t.jukeTimer ?? 0) - dt;
+        if (t.jukeTimer <= 0) {
+          const sp = this.p.moveSpeed * (0.6 + Math.random() * 0.7);
+          const ang = Math.random() * Math.PI * 2;
+          t.vTarget = new THREE.Vector3(Math.cos(ang) * sp, Math.sin(ang) * sp * 0.45, 0);
+          t.jukeTimer = 0.35 + Math.random() * 0.55;
+        }
+        t.velocity.lerp(t.vTarget, Math.min(1, dt * 6));
+      }
       t.position.addScaledVector(t.velocity, dt);
       const xLim = r.w / 2, yMin = Math.max(0.6, r.yc - r.h / 2), yMax = r.yc + r.h / 2;
-      if (t.position.x > xLim) { t.position.x = xLim; t.velocity.x *= -1; }
-      if (t.position.x < -xLim) { t.position.x = -xLim; t.velocity.x *= -1; }
-      if (t.position.y > yMax) { t.position.y = yMax; t.velocity.y *= -1; }
-      if (t.position.y < yMin) { t.position.y = yMin; t.velocity.y *= -1; }
+      if (t.position.x > xLim) { t.position.x = xLim; t.velocity.x = -Math.abs(t.velocity.x); if (t.vTarget) t.vTarget.x = -Math.abs(t.vTarget.x); }
+      if (t.position.x < -xLim) { t.position.x = -xLim; t.velocity.x = Math.abs(t.velocity.x); if (t.vTarget) t.vTarget.x = Math.abs(t.vTarget.x); }
+      if (t.position.y > yMax) { t.position.y = yMax; t.velocity.y = -Math.abs(t.velocity.y); if (t.vTarget) t.vTarget.y = -Math.abs(t.vTarget.y); }
+      if (t.position.y < yMin) { t.position.y = yMin; t.velocity.y = Math.abs(t.velocity.y); if (t.vTarget) t.vTarget.y = Math.abs(t.vTarget.y); }
     }
   }
 
@@ -278,6 +301,69 @@ class AlternatingClickScenario extends ClickScenario {
       : this.randomPos([new THREE.Vector3(0, r.yc, -r.dist)], 4);
     this.atCenter = !this.atCenter;
     return this.addTarget(pos);
+  }
+}
+
+// Popcorn: targets launch from the floor in gravity arcs and fall away if not killed.
+class PopcornScenario extends ClickScenario {
+  start() {
+    this.spawnTimer = 0;
+    this.escaped = 0;
+  }
+
+  spawnOne() {} // stream-driven from update(); no instant respawn on kill
+
+  update(dt) {
+    const r = this.region;
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0 && this.targets.length < (this.p.count ?? 4)) {
+      const t = this.addTarget(new THREE.Vector3((Math.random() - 0.5) * r.w, 0.3, -r.dist));
+      t.velocity.set((Math.random() - 0.5) * 4, 6.5 + Math.random() * 3.8, 0);
+      this.spawnTimer = 0.25 + Math.random() * 0.35;
+    }
+    const G = 9.5;
+    for (const t of [...this.targets]) {
+      t.velocity.y -= G * dt;
+      t.position.addScaledVector(t.velocity, dt);
+      if (t.velocity.y < 0 && t.position.y < -0.6) {
+        this.escaped++;
+        this.removeTarget(t, false);
+      }
+    }
+  }
+
+  resultStats() {
+    return [...super.resultStats().slice(0, 4), { label: 'Escaped', value: this.escaped }];
+  }
+  resultMeta() { return { escaped: this.escaped }; }
+}
+
+// Bounceshot: targets under gravity, bouncing off the floor and side walls.
+class BounceClickScenario extends ClickScenario {
+  spawnOne() {
+    const t = this.addTarget(this.randomPos(this.targets.map((x) => x.position)));
+    t.velocity.set(
+      (Math.random() < 0.5 ? -1 : 1) * (2.5 + Math.random() * 3.5),
+      (Math.random() - 0.5) * 4,
+      0
+    );
+    return t;
+  }
+
+  update(dt) {
+    const r = this.region;
+    const G = 16;
+    for (const t of this.targets) {
+      t.velocity.y -= G * dt;
+      t.position.addScaledVector(t.velocity, dt);
+      const xLim = r.w / 2;
+      if (t.position.x > xLim) { t.position.x = xLim; t.velocity.x = -Math.abs(t.velocity.x); }
+      if (t.position.x < -xLim) { t.position.x = -xLim; t.velocity.x = Math.abs(t.velocity.x); }
+      if (t.position.y < t.radius) {
+        t.position.y = t.radius;
+        t.velocity.y = 6.5 + Math.random() * 3.5; // fresh bounce height every hop
+      }
+    }
   }
 }
 
@@ -332,6 +418,44 @@ class FlickScenario extends ScenarioBase {
   resultMeta() { return { avgTtkMs: Math.round(this.avgTtk()) }; }
 }
 
+// Dodgeshot: one target that idles, then dashes sideways in sharp bursts.
+class DodgeFlickScenario extends FlickScenario {
+  spawn() {
+    super.spawn();
+    const t = this.targets[0];
+    t.velocity.set(0, 0, 0);
+    t.dashT = 0;
+    t.dodgeTimer = 0.5 + Math.random() * 0.8;
+  }
+
+  update(dt) {
+    super.update(dt); // respawn timer
+    const t = this.targets[0];
+    if (!t) return;
+    if (t.dashT > 0) {
+      t.dashT -= dt;
+      if (t.dashT <= 0) t.velocity.set(0, 0, 0);
+    } else {
+      t.dodgeTimer -= dt;
+      if (t.dodgeTimer <= 0) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        t.velocity.set(dir * (11 + Math.random() * 6), (Math.random() - 0.5) * 5, 0);
+        t.dashT = 0.13 + Math.random() * 0.06;
+        t.dodgeTimer = 0.6 + Math.random() * 0.9;
+      }
+    }
+    const r = this.region;
+    t.position.addScaledVector(t.velocity, dt);
+    const xLim = r.w / 2;
+    const yMin = Math.max(t.radius + 0.3, r.yc - r.h / 2);
+    const yMax = r.yc + r.h / 2;
+    if (t.position.x > xLim) { t.position.x = xLim; t.velocity.x = -Math.abs(t.velocity.x); }
+    if (t.position.x < -xLim) { t.position.x = -xLim; t.velocity.x = Math.abs(t.velocity.x); }
+    if (t.position.y > yMax) { t.position.y = yMax; t.velocity.y = -Math.abs(t.velocity.y); }
+    if (t.position.y < yMin) { t.position.y = yMin; t.velocity.y = Math.abs(t.velocity.y); }
+  }
+}
+
 // ============================== Tracking ==============================
 
 class TrackScenario extends ScenarioBase {
@@ -340,7 +464,13 @@ class TrackScenario extends ScenarioBase {
     this.heldTime = 0;
     this.changeTimer = 0;
     const r = this.region;
-    this.bot = this.addTarget(new THREE.Vector3(0, r.yc, -r.dist));
+    // Jumping bots stand on the floor (capsule center = half height above ground).
+    this.groundY = this.p.jump ? this.p.radius * 2.1 : r.yc;
+    this.bot = this.addTarget(
+      new THREE.Vector3(0, this.groundY, -r.dist),
+      this.p.capsule ? { shape: 'capsule' } : {}
+    );
+    this.jumpTimer = 0.8;
     this.pickVelocity();
   }
 
@@ -352,7 +482,7 @@ class TrackScenario extends ScenarioBase {
       this.bot.velocity.set(Math.cos(ang) * speed, vy, 0);
     } else {
       const dir = this.bot.velocity.x >= 0 ? -1 : 1; // strafe: flip direction
-      this.bot.velocity.set(dir * speed, 0, 0);
+      this.bot.velocity.x = dir * speed; // leave velocity.y to gravity/jumps
     }
     this.changeTimer = 0.3 + Math.random() * (this.p.air ? 0.9 : 0.6);
   }
@@ -363,14 +493,27 @@ class TrackScenario extends ScenarioBase {
     this.changeTimer -= dt;
     if (this.changeTimer <= 0) this.pickVelocity();
 
+    if (this.p.jump) b.velocity.y -= 22 * dt;
     b.position.addScaledVector(b.velocity, dt);
     const xLim = r.w / 2;
-    const yMin = Math.max(b.radius + 0.3, r.yc - r.h / 2);
-    const yMax = r.yc + r.h / 2;
     if (b.position.x > xLim) { b.position.x = xLim; b.velocity.x = -Math.abs(b.velocity.x); }
     if (b.position.x < -xLim) { b.position.x = -xLim; b.velocity.x = Math.abs(b.velocity.x); }
-    if (b.position.y > yMax) { b.position.y = yMax; b.velocity.y = -Math.abs(b.velocity.y); }
-    if (b.position.y < yMin) { b.position.y = yMin; b.velocity.y = Math.abs(b.velocity.y); }
+    if (this.p.jump) {
+      if (b.position.y <= this.groundY) {
+        b.position.y = this.groundY;
+        b.velocity.y = 0;
+        this.jumpTimer -= dt;
+        if (this.jumpTimer <= 0) {
+          b.velocity.y = 8; // hop ~1.5m
+          this.jumpTimer = 0.7 + Math.random() * 1.5;
+        }
+      }
+    } else {
+      const yMin = Math.max(b.radius + 0.3, r.yc - r.h / 2);
+      const yMax = r.yc + r.h / 2;
+      if (b.position.y > yMax) { b.position.y = yMax; b.velocity.y = -Math.abs(b.velocity.y); }
+      if (b.position.y < yMin) { b.position.y = yMin; b.velocity.y = Math.abs(b.velocity.y); }
+    }
 
     if (this.engine.shooting) {
       this.heldTime += dt;
@@ -409,6 +552,88 @@ class TrackScenario extends ScenarioBase {
       hits: 0, misses: 0, shots: 0, kills: 0,
     };
   }
+}
+
+// Target Switch (PatTargetSwitch-style): several juking bots, only the glowing
+// one scores. The active bot rotates every couple of seconds with a sound cue.
+class SwitchTrackScenario extends ScenarioBase {
+  start() {
+    this.onTime = 0;
+    this.heldTime = 0;
+    const r = this.region;
+    const n = this.p.botCount ?? 3;
+    this.groundY = this.p.radius * 2.1;
+    for (let i = 0; i < n; i++) {
+      const t = this.addTarget(
+        new THREE.Vector3(((i + 0.5) / n - 0.5) * r.w, this.groundY, -r.dist),
+        { shape: 'capsule' }
+      );
+      t.velocity.set((Math.random() < 0.5 ? -1 : 1) * (this.p.moveSpeed ?? 6), 0, 0);
+      t.jukeTimer = 0.4 + Math.random();
+    }
+    this.activeIndex = 0;
+    this.switchTimer = 2;
+    this.applyActive();
+  }
+
+  applyActive() {
+    this.targets.forEach((t, i) => t.setDim(i !== this.activeIndex));
+  }
+
+  update(dt) {
+    const r = this.region;
+    const xLim = r.w / 2;
+    for (const t of this.targets) {
+      t.jukeTimer -= dt;
+      if (t.jukeTimer <= 0) {
+        const sp = (this.p.moveSpeed ?? 6) * (0.6 + Math.random() * 0.8);
+        t.velocity.x = (Math.random() < 0.5 ? -1 : 1) * sp;
+        t.jukeTimer = 0.4 + Math.random() * 0.8;
+      }
+      t.position.addScaledVector(t.velocity, dt);
+      if (t.position.x > xLim) { t.position.x = xLim; t.velocity.x = -Math.abs(t.velocity.x); }
+      if (t.position.x < -xLim) { t.position.x = -xLim; t.velocity.x = Math.abs(t.velocity.x); }
+    }
+
+    this.switchTimer -= dt;
+    if (this.switchTimer <= 0) {
+      let next = Math.floor(Math.random() * this.targets.length);
+      if (next === this.activeIndex) next = (next + 1) % this.targets.length;
+      this.activeIndex = next;
+      this.applyActive();
+      this.sfx.tick();
+      this.switchTimer = 1.4 + Math.random() * 1.2;
+    }
+
+    if (this.engine.shooting) {
+      this.heldTime += dt;
+      const hit = this.engine.raycast(this.meshes);
+      if (hit && hit.object.userData.target === this.targets[this.activeIndex]) {
+        this.onTime += dt;
+        this.score += dt * 100;
+      }
+    }
+  }
+
+  hudAccLabel() { return 'ON TARGET'; }
+  hudAccValue() { return Math.round((this.elapsed ? this.onTime / this.elapsed : 0) * 100) + '%'; }
+  accuracy() { return this.elapsed > 0 ? this.onTime / this.elapsed : 0; }
+
+  baseResult() {
+    return {
+      score: Math.max(0, Math.round(this.score)),
+      accuracy: this.accuracy(),
+      hits: 0, misses: 0, shots: 0, kills: 0,
+    };
+  }
+  resultStats() {
+    return [
+      { label: 'Time on target', value: this.onTime.toFixed(1) + ' s' },
+      { label: 'On target', value: Math.round(this.accuracy() * 100) + '%' },
+      { label: 'Fire held', value: this.heldTime.toFixed(1) + ' s' },
+    ];
+  }
+  resultMeta() { return { timeOnTarget: +this.onTime.toFixed(2) }; }
 }
 
 // ============================== Reaction ==============================
@@ -486,8 +711,12 @@ class ReactionScenario extends ScenarioBase {
 const MODES = {
   click: ClickScenario,
   alternating: AlternatingClickScenario,
+  popcorn: PopcornScenario,
+  bounce: BounceClickScenario,
   flick: FlickScenario,
+  dodge: DodgeFlickScenario,
   track: TrackScenario,
+  switch: SwitchTrackScenario,
   reaction: ReactionScenario,
 };
 
@@ -529,9 +758,23 @@ export const SCENARIOS = [
   },
   {
     id: 'motionstrike', name: 'Motion Strike', cat: 'Clicking', duration: 60,
-    desc: 'Two targets drifting and bouncing around the arena. Click moving targets under pressure.',
+    desc: 'Two targets juking around the arena with sudden direction changes. Click movers under pressure.',
     mode: 'click',
-    params: { count: 2, radius: 0.7, width: 14, height: 4, yCenter: 2.9, distance: 20, moveSpeed: 6 },
+    params: { count: 2, radius: 0.7, width: 14, height: 4, yCenter: 2.9, distance: 20, moveSpeed: 7, movement: 'juke' },
+    benchmarks: [1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000],
+  },
+  {
+    id: 'popcorn', name: 'Popcorn', cat: 'Clicking', duration: 60,
+    desc: 'Targets pop up from the floor in gravity arcs and drop back down. Pick them out of the air — the infamous clicking cardio.',
+    mode: 'popcorn',
+    params: { count: 4, radius: 0.45, width: 16, height: 5, yCenter: 2.9, distance: 20, missPenalty: 20 },
+    benchmarks: [1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000],
+  },
+  {
+    id: 'bounceshot', name: 'Bounceshot', cat: 'Clicking', duration: 60,
+    desc: 'Three targets endlessly bouncing off the floor at unpredictable heights. Time your shots at the apex.',
+    mode: 'bounce',
+    params: { count: 3, radius: 0.6, width: 14, height: 5, yCenter: 3.2, distance: 20 },
     benchmarks: [1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000],
   },
   {
@@ -540,6 +783,13 @@ export const SCENARIOS = [
     mode: 'flick',
     params: { radius: 0.6, width: 16, height: 5, yCenter: 2.9, distance: 18 },
     benchmarks: [2000, 4000, 6000, 8000, 10000, 12000, 13500, 15000],
+  },
+  {
+    id: 'dodgeshot', name: 'Dodgeshot', cat: 'Flicking', duration: 60,
+    desc: 'One target that idles… then dashes sideways in a blink. Punish it between dodges — scored on kill speed.',
+    mode: 'dodge',
+    params: { radius: 0.55, width: 16, height: 5, yCenter: 2.9, distance: 18 },
+    benchmarks: [1500, 3000, 4500, 6000, 7500, 9000, 10000, 11000],
   },
   {
     id: 'strafetrack', name: 'Strafe Track', cat: 'Tracking', duration: 60,
@@ -554,6 +804,20 @@ export const SCENARIOS = [
     mode: 'track',
     params: { radius: 0.9, width: 16, height: 6, yCenter: 3.2, distance: 18, moveSpeed: 6, air: true },
     benchmarks: [1000, 1600, 2200, 2800, 3400, 4000, 4600, 5200],
+  },
+  {
+    id: 'ascendedtrack', name: 'Ascended Track', cat: 'Tracking', duration: 60,
+    desc: 'A pill bot that strafes hard and jumps. Track through the verticality — inspired by Ascended Tracking.',
+    mode: 'track',
+    params: { radius: 0.55, capsule: true, jump: true, width: 14, height: 0, yCenter: 1.2, distance: 16, moveSpeed: 7 },
+    benchmarks: [1000, 1500, 2100, 2700, 3300, 3900, 4500, 5100],
+  },
+  {
+    id: 'switchtrack', name: 'Target Switch', cat: 'Tracking', duration: 60,
+    desc: 'Three juking bots — only the glowing one counts. Snap to each new mark the instant it lights up.',
+    mode: 'switch',
+    params: { radius: 0.55, botCount: 3, width: 16, height: 0, yCenter: 1.2, distance: 17, moveSpeed: 6 },
+    benchmarks: [800, 1400, 2000, 2600, 3200, 3800, 4400, 5000],
   },
   {
     id: 'reflexshot', name: 'Reflex Shot', cat: 'Reaction', duration: 60,
@@ -571,10 +835,16 @@ export const PLAYLISTS = [
     desc: '6 scenarios · ~6 min · clicking, flicking, tracking and reaction in one routine',
     ids: ['gridshot', 'spidershot', 'flickshot', 'strafetrack', 'microshot', 'reflexshot'],
   },
+  {
+    id: 'movement-mastery',
+    name: 'Movement Mastery',
+    desc: '6 scenarios · ~6 min · moving targets only — arcs, bounces, jukes, jumps and switches',
+    ids: ['popcorn', 'bounceshot', 'motionstrike', 'dodgeshot', 'ascendedtrack', 'switchtrack'],
+  },
 ];
 
 export function customToDef(c) {
-  const modeMap = { click: 'click', moving: 'click', flick: 'flick', track: 'track' };
+  const modeMap = { click: 'click', moving: 'click', bounce: 'bounce', flick: 'flick', dodge: 'dodge', track: 'track' };
   return {
     id: c.id,
     name: c.name,
@@ -591,6 +861,7 @@ export function customToDef(c) {
       yCenter: Math.max(1.2, Math.min(6, 1.2 + c.height / 2)),
       distance: c.distance,
       moveSpeed: c.mode === 'moving' || c.mode === 'track' ? c.speed : 0,
+      movement: c.mode === 'moving' ? 'juke' : undefined,
       killHits: c.hits,
       air: c.mode === 'track' && c.height > 1,
     },
