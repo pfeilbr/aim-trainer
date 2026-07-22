@@ -667,6 +667,9 @@ if (import.meta.env.DEV) {
     engine,
     get scenario() { return scenario; },
     get gameState() { return gameState; },
+    get timeLeft() { return timeLeft; },
+    set timeLeft(v) { timeLeft = v; },
+    resume: () => { $('#pause-overlay').classList.add('hidden'); gameState = 'playing'; engine.inputEnabled = true; },
     startScenario,
     defById,
   };
