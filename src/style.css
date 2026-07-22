@@ -242,6 +242,43 @@ input[type="color"] { width: 48px; height: 32px; border: 1px solid var(--border)
 .modal-card h2 { margin-bottom: 18px; }
 .field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 
+/* ============ CALIBRATION WIZARD ============ */
+.cal-card { width: min(520px, 94vw); }
+.cal-intro { font-size: 0.88rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px; }
+.cal-options { display: flex; flex-direction: column; gap: 10px; }
+.cal-opt {
+  text-align: left; padding: 14px 16px; border-radius: 10px; cursor: pointer;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cal-opt:hover { border-color: var(--accent); }
+.cal-opt b { font-size: 0.95rem; }
+.cal-opt span { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+.cal-rec {
+  font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--accent); color: #10131a; border-radius: 999px; padding: 2px 8px; margin-left: 6px;
+  vertical-align: middle;
+}
+#cal-capture {
+  height: 190px; border-radius: 10px; border: 2px dashed var(--border);
+  background: repeating-linear-gradient(45deg, var(--bg2), var(--bg2) 12px, #141922 12px, #141922 24px);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  cursor: crosshair; margin-bottom: 14px;
+}
+#cal-capture.locked { border-color: var(--accent); border-style: solid; }
+#cal-capture-msg { font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; padding: 0 20px; }
+#cal-capture-msg b { color: var(--text); }
+.cal-progress { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+.cal-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bg2); border: 1px solid var(--border); }
+.cal-dot.done { background: var(--accent); border-color: var(--accent); }
+.cal-feedback { text-align: center; font-size: 0.85rem; color: var(--accent2); min-height: 1.4em; margin-bottom: 6px; }
+.cal-result-big { font-size: 1.1rem; color: var(--text-dim); margin-bottom: 10px; }
+.cal-result-big b { font-size: 2.2rem; color: var(--accent); margin-left: 6px; }
+.cal-warning {
+  font-size: 0.8rem; color: #fbbf24; background: #2a2312; border: 1px solid #4a3d16;
+  border-radius: 8px; padding: 9px 12px; margin-top: 10px; line-height: 1.45;
+}
+
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }

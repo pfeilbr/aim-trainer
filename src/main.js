@@ -4,6 +4,7 @@ import * as store from './storage.js';
 import { Sfx } from './audio.js';
 import { drawLineChart } from './charts.js';
 import { applyCrosshair } from './crosshair.js';
+import { initCalibration } from './calibrate.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -463,6 +464,8 @@ $('#stats-scenario-select').addEventListener('change', renderStatsChart);
 
 // ============================== Settings panel ==============================
 
+let syncSettingsUI = () => {}; // assigned inside bindSettings; used after calibration
+
 function bindSettings() {
   const s = settings;
 
@@ -491,6 +494,13 @@ function bindSettings() {
       `${cm.toFixed(1)} cm / 360°  ·  ${(BASE_DEG_PER_COUNT * s.sens).toFixed(4)}° per count @ ${s.dpi} DPI`;
   }
   updateCm360();
+
+  syncSettingsUI = () => {
+    $('#set-sens').value = s.sens;
+    $('#set-sens-slider').value = Math.min(5, s.sens);
+    $('#set-dpi').value = s.dpi;
+    updateCm360();
+  };
 
   // game sens converter
   $('#conv-apply').addEventListener('click', () => {
@@ -643,9 +653,28 @@ $('#ed-cancel').addEventListener('click', () => $('#editor-modal').classList.add
 
 // ============================== Boot ==============================
 
+// ============================== Mouse calibration ==============================
+
+const calibration = initCalibration({
+  sfx,
+  onApply: ({ sens, dpi }) => {
+    if (sens) settings.sens = sens;
+    if (dpi) settings.dpi = dpi;
+    settings.calibrated = true;
+    store.saveSettings(settings);
+    engine.applySettings(settings);
+    sfx.settings = settings;
+    syncSettingsUI();
+  },
+});
+$('#btn-calibrate').addEventListener('click', () => calibration.open('auto'));
+
 bindSettings();
 refreshMenu();
 showScreen('menu');
+
+// First visit: open the mouse wizard so new users start with sane sensitivity.
+if (!settings.calibrated) calibration.open();
 
 // Main loop: rAF when available, with an interval fallback so the game
 // keeps stepping if rAF is throttled (background/embedded tabs).
@@ -673,5 +702,6 @@ if (import.meta.env.DEV) {
     resume: () => { $('#pause-overlay').classList.add('hidden'); gameState = 'playing'; engine.inputEnabled = true; },
     startScenario,
     defById,
+    calibration,
   };
 }

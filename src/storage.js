@@ -7,6 +7,7 @@ const KEYS = {
 };
 
 export const DEFAULT_SETTINGS = {
+  calibrated: false,  // true once the first-run mouse wizard has been completed/skipped
   sens: 1.0,          // CS/Apex scale (0.022 deg per count at sens 1)
   dpi: 800,
   fov: 103,           // horizontal FOV, 16:9 style

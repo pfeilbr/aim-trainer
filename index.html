@@ -92,6 +92,7 @@
                 <input type="number" id="set-dpi" min="100" max="26000" step="50" />
               </label>
               <div class="derived" id="cm360-display">—</div>
+              <div class="btn-row"><button id="btn-calibrate" class="btn">🎯 Auto-calibrate mouse</button></div>
               <div class="subgroup">
                 <h3>Import from game</h3>
                 <span class="field-inline">
@@ -258,6 +259,75 @@
       </div>
     </div>
 
+    <!-- ============ MOUSE CALIBRATION WIZARD ============ -->
+    <div id="cal-modal" class="modal hidden">
+      <div class="modal-card cal-card">
+        <h2>🎯 Mouse setup</h2>
+
+        <div id="cal-choose">
+          <p class="cal-intro">Get your sensitivity dialed in under 30 seconds. Pick whichever is easiest:</p>
+          <div class="cal-options">
+            <button class="cal-opt" id="cal-opt-auto">
+              <b>Auto-calibrate with 3 flicks <span class="cal-rec">recommended</span></b>
+              <span>Swipe your mouse naturally — we measure it and set sensitivity for you. No numbers needed.</span>
+            </button>
+            <button class="cal-opt" id="cal-opt-import">
+              <b>Copy from a game I play</b>
+              <span>Same feel as your CS2, Valorant, Overwatch 2, Fortnite or Quake sensitivity.</span>
+            </button>
+            <button class="cal-opt" id="cal-opt-skip">
+              <b>Skip for now</b>
+              <span>Use defaults — you can calibrate anytime from Settings.</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="cal-import" class="hidden">
+          <label class="field"><span>Game</span>
+            <select id="cal-game">
+              <option value="0.022">CS2 / CS:GO</option>
+              <option value="0.022">Apex Legends</option>
+              <option value="0.07">Valorant</option>
+              <option value="0.0066">Overwatch 2</option>
+              <option value="0.005558">Fortnite</option>
+              <option value="0.02291">Quake / Diabotical</option>
+            </select>
+          </label>
+          <label class="field"><span>In-game sensitivity</span><input type="number" id="cal-game-sens" step="0.001" min="0" placeholder="e.g. 1.2" /></label>
+          <label class="field"><span>Mouse DPI <small>(optional — for cm/360 display)</small></span><input type="number" id="cal-import-dpi" placeholder="800" min="50" /></label>
+          <div class="btn-row center">
+            <button id="cal-import-apply" class="btn primary">Apply</button>
+            <button class="btn cal-back">Back</button>
+          </div>
+        </div>
+
+        <div id="cal-auto" class="hidden">
+          <div id="cal-capture">
+            <div id="cal-capture-msg"><b>Click here</b> to lock your mouse,<br/>then flick as if turning to shoot an enemy <b>directly behind you</b>.</div>
+          </div>
+          <div class="cal-progress">
+            <span class="cal-dot" data-dot="0"></span>
+            <span class="cal-dot" data-dot="1"></span>
+            <span class="cal-dot" data-dot="2"></span>
+          </div>
+          <div id="cal-feedback" class="cal-feedback">Waiting for flick 1 of 3…</div>
+          <div class="btn-row center"><button class="btn cal-back">Back</button></div>
+        </div>
+
+        <div id="cal-result" class="hidden">
+          <div class="cal-result-big">Sensitivity <b id="cal-result-sens"></b></div>
+          <p id="cal-result-info" class="cal-intro"></p>
+          <label class="field"><span>Mouse DPI <small>(optional — only used to show cm/360)</small></span><input type="number" id="cal-dpi" placeholder="800" min="50" /></label>
+          <div class="derived" id="cal-result-cm"></div>
+          <div id="cal-warnings"></div>
+          <div class="btn-row center">
+            <button id="cal-accept" class="btn primary big">Looks good — let's train</button>
+            <button id="cal-redo" class="btn">Redo flicks</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>

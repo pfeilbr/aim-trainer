@@ -15,6 +15,7 @@ A free, browser-based FPS aim trainer inspired by [KovaaK's](https://store.steam
 - **Benchmarks & ranks** — Iron → Grandmaster thresholds per scenario, with progress bars toward the next rank
 - **Progress tracking** — score history charts, personal bests, per-scenario averages, recent runs, lifetime stats
 - **Custom scenario editor** — build your own scenarios (mode, target count/size, spawn area, speed, hits-to-kill, duration)
+- **First-run mouse calibration wizard** — auto-opens on first visit; measure your natural 180° flick (3 swipes, no numbers needed) and sensitivity is set for you, or copy your sens from a game. Detects polling rate, trackpad input, and missing raw input (OS pointer acceleration) while calibrating
 - **Real sensitivity model** — CS/Apex-scale sensitivity (0.022°/count), cm/360 display, and importers for Valorant, Overwatch 2, Fortnite, and Quake sens
 - **Crosshair editor** — style, color, size, gap, thickness, outline, with live preview
 - **Customization** — FOV (horizontal), target color, run-duration override, synthesized hit sounds (WebAudio, no assets)
